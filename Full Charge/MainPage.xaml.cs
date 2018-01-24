@@ -1,21 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.ApplicationModel.Background;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
+using Windows.Devices.Power;
 using Windows.System.Power;
-using Windows.UI.Xaml;
+using Windows.UI.Core;
 using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Controls.Primitives;
-using Windows.UI.Xaml.Data;
-using Windows.UI.Xaml.Input;
-using Windows.UI.Xaml.Media;
-using Windows.UI.Xaml.Navigation;
-
-// The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
 namespace Full_Charge
 {
@@ -26,9 +14,24 @@ namespace Full_Charge
     {
         public MainPage()
         {
-            this.InitializeComponent();
-            BatteryPercentage.Text = PowerManager.RemainingChargePercent.ToString() + "%";
+            InitializeComponent();
+            GetBatteryReport();
+            Battery.AggregateBattery.ReportUpdated += AggregateBattery_ReportUpdated;
             RegisterBakgroundTask();
+        }
+
+        private async void AggregateBattery_ReportUpdated(Battery sender, object args)
+        {
+            await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+             {
+                 GetBatteryReport();
+             });
+        }
+
+        private void GetBatteryReport()
+        {
+            BatteryPercentage.Text = PowerManager.RemainingChargePercent.ToString() + "%";
+            BatteryState.Text = PowerManager.BatteryStatus.ToString();
         }
 
         private const string taskName = "FullChargeDisconnect";
@@ -47,9 +50,11 @@ namespace Full_Charge
                     }
                 }
 
-                var taskBuilder = new BackgroundTaskBuilder();
-                taskBuilder.Name = taskName;
-                taskBuilder.TaskEntryPoint = taskEntryPoint;
+                var taskBuilder = new BackgroundTaskBuilder
+                {
+                    Name = taskName,
+                    TaskEntryPoint = taskEntryPoint
+                };
                 taskBuilder.SetTrigger(new TimeTrigger(15, false));
                 BackgroundTaskRegistration regesteration = taskBuilder.Register();
             }
